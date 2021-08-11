@@ -1,4 +1,4 @@
-package proxy
+package vhost
 
 import (
 	"context"
@@ -224,6 +224,14 @@ type ServiceDirector struct {
 	directorPodMap     map[string]*PodBackend
 }
 
+func (director *ServiceDirector) Name() string {
+	return director.name
+}
+
+func (director *ServiceDirector) TargetPort() uint16 {
+	return director.targetPort
+}
+
 func (director *ServiceDirector) Evict(podName string) {
 	director.activePodMapLock.Lock()
 	defer director.activePodMapLock.Unlock()
@@ -273,10 +281,6 @@ func (director *ServiceDirector) LookupPodBackend() *PodBackend {
 	return nil
 }
 
-func (director *ServiceDirector) TargetPort() uint16 {
-	return director.targetPort
-}
-
 func NewServiceDirector(name string, targetPort uint16) *ServiceDirector {
 	return &ServiceDirector{
 		name:           name,
@@ -311,7 +315,7 @@ func (resolver *HttpPortForwardResolver) UpdatePodBackend(pod *corev1.Pod) {
 }
 
 func (resolver *HttpPortForwardResolver) AddServiceMap(svc *corev1.Service, targetPort uint16) *ServiceDirector {
-	name := svc.ObjectMeta.Name
+	name := svc.Name
 	resolver.serviceMapLock.Lock()
 	defer resolver.serviceMapLock.Unlock()
 	_, exists := resolver.serviceMap[name]
@@ -331,6 +335,14 @@ func (resolver *HttpPortForwardResolver) GetServiceNames() []string {
 	items := []string{}
 	for name, _ := range resolver.serviceMap {
 		items = append(items, name)
+	}
+	return items
+}
+
+func (resolver *HttpPortForwardResolver) GetServiceDirectors() []*ServiceDirector {
+	items := []*ServiceDirector{}
+	for _, item := range resolver.serviceMap {
+		items = append(items, item)
 	}
 	return items
 }

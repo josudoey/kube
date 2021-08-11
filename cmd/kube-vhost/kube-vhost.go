@@ -2,19 +2,42 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 
 	"github.com/josudoey/kube"
-	"github.com/josudoey/kube/proxy"
+	"github.com/josudoey/kube/vhost"
+	"github.com/spf13/cobra"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 )
 
-func Run() error {
-	selector := ""
-	f := kube.GetFactory()
+const (
+	defaultPort    = 8010
+	defaultAddress = "127.0.0.1"
+)
+
+type VhostProxyOptions struct {
+	port    int
+	address string
+	verbose bool
+
+	LabelSelector string
+}
+
+func NewVhostProxyOptions() *VhostProxyOptions {
+	return &VhostProxyOptions{
+		port:    defaultPort,
+		address: defaultAddress,
+	}
+}
+
+func (o *VhostProxyOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) error {
+	selector := o.LabelSelector
 	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
@@ -30,7 +53,7 @@ func Run() error {
 	if err != nil {
 		return err
 	}
-	resolver := proxy.NewPortForwardResolver()
+	resolver := vhost.NewPortForwardResolver()
 	for _, svc := range serviceList.Items {
 		for _, svcPort := range kube.GetServicePorts(&svc) {
 			if svcPort.Name != "http" && svcPort.Port != 80 {
@@ -38,13 +61,12 @@ func Run() error {
 			}
 
 			targetPort := uint16(svcPort.TargetPort.IntVal)
-			log.Printf("PortForward %s:%d", svc.Name, targetPort)
 			resolver.AddServiceMap(&svc, targetPort)
 			break
 		}
 	}
 
-	resolver.OnAddPodBackend = func(backend *proxy.PodBackend) {
+	resolver.OnAddPodBackend = func(backend *vhost.PodBackend) {
 		podName := backend.Name()
 		backend.OnCreatePortForward = func() {
 			log.Printf("Created PortForward %s", podName)
@@ -63,6 +85,7 @@ func Run() error {
 	if err != nil {
 		return err
 	}
+	defer watcher.Stop()
 
 	ctx, cancel := context.WithCancel(ctx)
 	go func() {
@@ -80,8 +103,14 @@ func Run() error {
 				if pod == nil {
 					continue
 				}
-				// Watch Pod Use
-				// log.Printf("event: %v %v %v %v Ready: %v", e.Type, pod.ObjectMeta.Name, pod.Name, pod.Status.Phase, kube.IsPodReady(pod))
+
+				if o.verbose {
+					ready := ""
+					if kube.IsPodReady(pod) {
+						ready = "(Ready)"
+					}
+					log.Printf("Event: %s %s%v %s", e.Type, pod.Status.Phase, ready, pod.Name)
+				}
 				resolver.UpdatePodBackend(pod)
 			}
 		}
@@ -99,28 +128,45 @@ func Run() error {
 
 	mux := http.NewServeMux()
 	transport := resolver.GetHttpTransport(restClient, config, namespace)
-	for _, svc := range resolver.GetServiceNames() {
-		vhost, err := url.Parse("http://" + svc)
+	for _, svc := range resolver.GetServiceDirectors() {
+		name := svc.Name()
+		vhost, err := url.Parse("http://" + name)
 		if err != nil {
 			continue
 		}
 		rp := httputil.NewSingleHostReverseProxy(vhost)
 		rp.Transport = transport
-		pattern := svc + "/"
+		pattern := name + "/"
 		mux.HandleFunc(pattern, rp.ServeHTTP)
+		log.Printf("vhost proxy %s:%d", name, svc.TargetPort())
 	}
-	listenAddr := ":8010"
-	log.Printf("Listen On %s", listenAddr)
-	server := &http.Server{Addr: listenAddr, Handler: mux}
-	go server.ListenAndServe()
+
+	l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", o.address, o.port))
+	if err != nil {
+		return err
+	}
+	log.Printf("Starting to serve on %s\n", l.Addr().String())
+	server := &http.Server{Handler: mux}
+	go server.Serve(l)
 	<-ctx.Done()
 	server.Close()
 	return nil
 }
 
 func main() {
-	err := Run()
-	if err != nil {
-		log.Fatal(err)
+	o := NewVhostProxyOptions()
+	f := kube.GetDefaultFactory()
+
+	cmd := &cobra.Command{
+		Use: "kube-vhost [--port=PORT]",
+		Run: func(cmd *cobra.Command, args []string) {
+			cmdutil.CheckErr(o.Run(f, cmd, args))
+		},
 	}
+
+	cmd.Flags().BoolVarP(&o.verbose, "verbose", "v", o.verbose, "Set verbose mode.")
+	cmd.Flags().IntVarP(&o.port, "port", "p", o.port, "The port on which to run the proxy. Set to 0 to pick a random port.")
+	cmd.Flags().StringVar(&o.address, "address", o.address, "The IP address on which to serve on.")
+	cmd.Flags().StringVarP(&o.LabelSelector, "selector", "l", o.LabelSelector, "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
+	cmd.Execute()
 }
