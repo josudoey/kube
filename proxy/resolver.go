@@ -45,6 +45,10 @@ type PortForwardConnection struct {
 // Forward copies data between the local connection and the stream to
 // the remote server.
 // see https://github.com/kubernetes/client-go/blob/master/tools/portforward/portforward.go#L324
+// see https://github.com/kubernetes/kubernetes/blob/10ed4502f46d763a809ccdcc6c30be1c03e19147/pkg/kubelet/cri/streaming/server.go#L132
+// see https://github.com/kubernetes/kubernetes/blob/10ed4502f46d763a809ccdcc6c30be1c03e19147/pkg/kubelet/cri/streaming/portforward/portforward.go#L41
+// see https://github.com/kubernetes/kubernetes/blob/10ed4502f46d763a809ccdcc6c30be1c03e19147/pkg/kubelet/cri/streaming/portforward/httpstream.go#L36
+// see https://github.com/kubernetes/kubernetes/blob/10ed4502f46d763a809ccdcc6c30be1c03e19147/pkg/kubelet/cri/streaming/portforward/httpstream.go#L74
 func (forwarder *PortForwardConnection) Forward(conn net.Conn, port uint16) error {
 	forwarder.wg.Add(1)
 	defer forwarder.wg.Done()
