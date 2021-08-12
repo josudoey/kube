@@ -28,7 +28,7 @@ type RequestIDGenerator struct {
 	requestID     int
 }
 
-func (r *RequestIDGenerator) nextRequestID() int {
+func (r *RequestIDGenerator) NextRequestID() int {
 	r.requestIDLock.Lock()
 	defer r.requestIDLock.Unlock()
 	id := r.requestID
@@ -53,7 +53,7 @@ func (forwarder *PortForwardConnection) Forward(conn net.Conn, port uint16) erro
 	forwarder.wg.Add(1)
 	defer forwarder.wg.Done()
 	defer conn.Close()
-	requestID := forwarder.nextRequestID()
+	requestID := forwarder.NextRequestID()
 
 	// create error stream
 	headers := http.Header{}
