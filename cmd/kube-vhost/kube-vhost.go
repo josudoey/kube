@@ -80,10 +80,10 @@ func (o *KubeVhostOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []str
 			log.Printf("Closed http PortForward %s", podName)
 		}
 		backend.OnCreateStream = func(id int) {
-			log.Printf("Created grpc Stream#%d %s", id, podName)
+			log.Printf("Created http Stream#%d %s", id, podName)
 		}
 		backend.OnCloseStream = func(id int) {
-			log.Printf("Closed grpc Stream#%d %s", id, podName)
+			log.Printf("Closed http Stream#%d %s", id, podName)
 		}
 	}
 
