@@ -21,7 +21,7 @@ const (
 	defaultAddress = "127.0.0.1"
 )
 
-type VhostProxyOptions struct {
+type KubeVhostOptions struct {
 	port    int
 	address string
 	verbose bool
@@ -29,14 +29,14 @@ type VhostProxyOptions struct {
 	LabelSelector string
 }
 
-func NewVhostProxyOptions() *VhostProxyOptions {
-	return &VhostProxyOptions{
+func NewKubeVhostOptions() *KubeVhostOptions {
+	return &KubeVhostOptions{
 		port:    defaultPort,
 		address: defaultAddress,
 	}
 }
 
-func (o *VhostProxyOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) error {
+func (o *KubeVhostOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) error {
 	selector := o.LabelSelector
 	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
@@ -191,7 +191,7 @@ func (o *VhostProxyOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []st
 }
 
 func main() {
-	o := NewVhostProxyOptions()
+	o := NewKubeVhostOptions()
 	f := kube.GetDefaultFactory()
 
 	cmd := &cobra.Command{
