@@ -51,7 +51,7 @@ type PortForwardConnection struct {
 // see https://github.com/kubernetes/kubernetes/blob/10ed4502f46d763a809ccdcc6c30be1c03e19147/pkg/kubelet/cri/streaming/portforward/portforward.go#L41
 // see https://github.com/kubernetes/kubernetes/blob/10ed4502f46d763a809ccdcc6c30be1c03e19147/pkg/kubelet/cri/streaming/portforward/httpstream.go#L36
 // see https://github.com/kubernetes/kubernetes/blob/10ed4502f46d763a809ccdcc6c30be1c03e19147/pkg/kubelet/cri/streaming/portforward/httpstream.go#L74
-func (forwarder *PortForwardConnection) Forward(conn net.Conn, port uint16, serverPreface []byte, clientPreface []byte) error {
+func (forwarder *PortForwardConnection) Forward(conn net.Conn, port uint16, clientPreface []byte) error {
 	forwarder.wg.Add(1)
 	defer forwarder.wg.Done()
 	defer conn.Close()
@@ -93,7 +93,6 @@ func (forwarder *PortForwardConnection) Forward(conn net.Conn, port uint16, serv
 	localError := make(chan struct{})
 	remoteDone := make(chan struct{})
 
-	conn.Write(serverPreface)
 	dataStream.Write(clientPreface)
 	go func() {
 		// inform the select below that the remote copy is done

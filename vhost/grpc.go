@@ -41,19 +41,8 @@ func (r *readRecorder) Read(p []byte) (int, error) {
 	return n, err
 }
 
-type writeRecorder struct {
-	io.Writer
-	bytes.Buffer
-}
-
-func (r *writeRecorder) Write(p []byte) (int, error) {
-	r.Buffer.Write(p)
-	return r.Writer.Write(p)
-}
-
 type GRPCPreface struct {
 	Header        []hpack.HeaderField
-	ServerPreface []byte
 	ClientPreface []byte
 }
 
@@ -70,11 +59,8 @@ func GetGRPCPreface(conn net.Conn, rw *bufio.ReadWriter) (*GRPCPreface, error) {
 		Reader: rw.Reader,
 	}
 	r.Write([]byte(http2.ClientPreface))
-	w := &writeRecorder{
-		Writer: rw.Writer,
-	}
 
-	framer := http2.NewFramer(w, r)
+	framer := http2.NewFramer(rw.Writer, r)
 	framer.SetMaxReadFrameSize(http2MaxFrameLen)
 	framer.SetReuseFrames()
 	framer.MaxHeaderListSize = defaultServerMaxHeaderListSize
@@ -126,7 +112,6 @@ func GetGRPCPreface(conn net.Conn, rw *bufio.ReadWriter) (*GRPCPreface, error) {
 
 	return &GRPCPreface{
 		Header:        metaHeader.Fields,
-		ServerPreface: w.Bytes(),
 		ClientPreface: r.Bytes(),
 	}, nil
 }
@@ -179,7 +164,7 @@ func (resolver *HttpPortForwardResolver) GetGRPCHandler(base http.Handler, clien
 		conn.OnCloseStream = backend.OnCloseStream
 
 		go func() {
-			err := conn.Forward(local, director.TargetPort(), preface.ServerPreface, preface.ClientPreface)
+			err := conn.Forward(local, director.TargetPort(), preface.ClientPreface)
 			if err != nil {
 				director.Evict(backend.Name())
 			}

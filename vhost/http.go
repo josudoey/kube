@@ -43,7 +43,7 @@ func (resolver *HttpPortForwardResolver) GetHttpTransport(client *rest.RESTClien
 			local, remote := net.Pipe()
 			go func() {
 				defer local.Close()
-				err := conn.Forward(remote, director.TargetPort(), nil, nil)
+				err := conn.Forward(remote, director.TargetPort(), nil)
 				if err != nil {
 					director.Evict(backend.Name())
 				}
