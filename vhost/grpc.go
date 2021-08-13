@@ -57,7 +57,7 @@ type GRPCPreface struct {
 	ClientPreface []byte
 }
 
-var ErrInlvaidGRPCPreface = errors.New("invalid grpc preface data")
+var ErrInvaidGRPCPreface = errors.New("invalid grpc preface data")
 
 // see https://github.com/grpc/grpc-go/blob/01bababd83492b6eb1c7046ab4c3a4b1bcc5e9d6/internal/transport/http2_server.go#L135
 func GetGRPCPreface(conn net.Conn, rw *bufio.ReadWriter) (*GRPCPreface, error) {
@@ -87,7 +87,7 @@ func GetGRPCPreface(conn net.Conn, rw *bufio.ReadWriter) (*GRPCPreface, error) {
 
 	_, ok := frame.(*http2.SettingsFrame)
 	if !ok {
-		return nil, ErrInlvaidGRPCPreface
+		return nil, ErrInvaidGRPCPreface
 	}
 
 	isettings := []http2.Setting{{
@@ -111,7 +111,7 @@ func GetGRPCPreface(conn net.Conn, rw *bufio.ReadWriter) (*GRPCPreface, error) {
 	}
 	_, ok = frame.(*http2.SettingsFrame)
 	if !ok {
-		return nil, ErrInlvaidGRPCPreface
+		return nil, ErrInvaidGRPCPreface
 	}
 
 	frame, err = framer.ReadFrame()
@@ -121,7 +121,7 @@ func GetGRPCPreface(conn net.Conn, rw *bufio.ReadWriter) (*GRPCPreface, error) {
 
 	metaHeader, ok := frame.(*http2.MetaHeadersFrame)
 	if !ok {
-		return nil, ErrInlvaidGRPCPreface
+		return nil, ErrInvaidGRPCPreface
 	}
 
 	return &GRPCPreface{
