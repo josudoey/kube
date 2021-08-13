@@ -59,6 +59,7 @@ type GRPCPreface struct {
 
 var ErrInlvaidGRPCPreface = errors.New("invalid grpc preface data")
 
+// see https://github.com/grpc/grpc-go/blob/01bababd83492b6eb1c7046ab4c3a4b1bcc5e9d6/internal/transport/http2_server.go#L135
 func GetGRPCPreface(conn net.Conn, rw *bufio.ReadWriter) (*GRPCPreface, error) {
 	const http2ClientPrefaceSuffix = "SM\r\n\r\n"
 	if _, err := io.ReadFull(rw, make([]byte, len(http2ClientPrefaceSuffix))); err != nil {
@@ -141,6 +142,8 @@ func (s *grpcServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 func (resolver *HttpPortForwardResolver) GetGRPCHandler(base http.Handler, client *rest.RESTClient, config *rest.Config, namespace string) http.Handler {
 	handleConnection := func(local net.Conn, preface *GRPCPreface) error {
 		addr := ""
+
+		// see https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests
 		for _, f := range preface.Header {
 			if f.Name != ":authority" {
 				continue
@@ -195,6 +198,9 @@ func (resolver *HttpPortForwardResolver) GetGRPCHandler(base http.Handler, clien
 				}
 
 				preface, err := GetGRPCPreface(conn, rw)
+				if err != nil {
+					return
+				}
 				handleConnection(conn, preface)
 				return
 			}
