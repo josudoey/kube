@@ -99,7 +99,7 @@ func (o *KubeVhostOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []str
 			log.Printf("Created grpc Stream#%d %s", id, podName)
 		}
 		backend.OnCloseStream = func(id int) {
-			log.Printf("Closed grpc  Stream#%d %s", id, podName)
+			log.Printf("Closed grpc Stream#%d %s", id, podName)
 		}
 	}
 
