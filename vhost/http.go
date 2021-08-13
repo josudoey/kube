@@ -37,6 +37,8 @@ func (resolver *HttpPortForwardResolver) GetHttpTransport(client *rest.RESTClien
 				director.Evict(backend.Name())
 				return nil, err
 			}
+			conn.OnCreateStream = backend.OnCreateStream
+			conn.OnCloseStream = backend.OnCloseStream
 
 			local, remote := net.Pipe()
 			go func() {

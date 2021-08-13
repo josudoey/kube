@@ -36,6 +36,9 @@ func (r *RequestIDGenerator) NextRequestID() int {
 }
 
 type PortForwardConnection struct {
+	OnCreateStream func(id int)
+	OnCloseStream  func(id int)
+
 	RequestIDGenerator
 	httpstream.Connection
 	wg sync.WaitGroup
@@ -83,6 +86,10 @@ func (forwarder *PortForwardConnection) Forward(conn net.Conn, port uint16, serv
 		runtime.HandleError(fmt.Errorf("error creating forwarding stream for port %d: %v", port, err))
 		return err
 	}
+
+	if forwarder.OnCreateStream != nil {
+		go forwarder.OnCreateStream(requestID)
+	}
 	localError := make(chan struct{})
 	remoteDone := make(chan struct{})
 
@@ -129,6 +136,10 @@ func (forwarder *PortForwardConnection) Forward(conn net.Conn, port uint16, serv
 	case <-remoteDone:
 	case <-localError:
 	}
+
+	if forwarder.OnCloseStream != nil {
+		go forwarder.OnCloseStream(requestID)
+	}
 	return nil
 }
 
@@ -166,6 +177,8 @@ func DialPortForwardConnection(client *rest.RESTClient, config *rest.Config, nam
 type PodBackend struct {
 	OnCreatePortForward func()
 	OnClosePortForward  func()
+	OnCreateStream      func(id int)
+	OnCloseStream       func(id int)
 
 	name       string
 	dialOnce   sync.Once

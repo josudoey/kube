@@ -175,6 +175,8 @@ func (resolver *HttpPortForwardResolver) GetGRPCHandler(base http.Handler, clien
 			director.Evict(backend.Name())
 			return err
 		}
+		conn.OnCreateStream = backend.OnCreateStream
+		conn.OnCloseStream = backend.OnCloseStream
 
 		go func() {
 			err := conn.Forward(local, director.TargetPort(), preface.ServerPreface, preface.ClientPreface)

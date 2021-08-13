@@ -77,7 +77,13 @@ func (o *VhostProxyOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []st
 			log.Printf("Created http PortForward %s", podName)
 		}
 		backend.OnClosePortForward = func() {
-			log.Printf("Close http PortForward %s", podName)
+			log.Printf("Closed http PortForward %s", podName)
+		}
+		backend.OnCreateStream = func(id int) {
+			log.Printf("Created grpc Stream#%d %s", id, podName)
+		}
+		backend.OnCloseStream = func(id int) {
+			log.Printf("Closed grpc Stream#%d %s", id, podName)
 		}
 	}
 
@@ -87,7 +93,13 @@ func (o *VhostProxyOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []st
 			log.Printf("Created grpc PortForward %s", podName)
 		}
 		backend.OnClosePortForward = func() {
-			log.Printf("Close grpc PortForward %s", podName)
+			log.Printf("Closed grpc PortForward %s", podName)
+		}
+		backend.OnCreateStream = func(id int) {
+			log.Printf("Created grpc Stream#%d %s", id, podName)
+		}
+		backend.OnCloseStream = func(id int) {
+			log.Printf("Closed grpc  Stream#%d %s", id, podName)
 		}
 	}
 
