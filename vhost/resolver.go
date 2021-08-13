@@ -110,6 +110,7 @@ func (forwarder *PortForwardConnection) Forward(conn net.Conn, port uint16, serv
 		if strings.Contains(err.Error(), "use of closed network connection") {
 			return
 		}
+		runtime.HandleError(fmt.Errorf("error copying from remote stream to local connection: %v", err))
 	}()
 
 	go func() {
