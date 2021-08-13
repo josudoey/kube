@@ -28,7 +28,7 @@ func (resolver *HttpPortForwardResolver) GetHttpTransport(client *rest.RESTClien
 
 			backend := director.LookupPodBackend()
 			if backend == nil {
-				err := fmt.Errorf("%s pod not found", director.name)
+				err := fmt.Errorf("%s pod not found", director.Name())
 				return nil, err
 			}
 

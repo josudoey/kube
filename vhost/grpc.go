@@ -166,7 +166,7 @@ func (resolver *HttpPortForwardResolver) GetGRPCHandler(base http.Handler, clien
 
 		backend := director.LookupPodBackend()
 		if backend == nil {
-			err := fmt.Errorf("%s pod not found", director.name)
+			err := fmt.Errorf("%s pod not found", director.Name())
 			return err
 		}
 
