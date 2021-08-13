@@ -1,7 +1,6 @@
 package vhost
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -49,7 +48,7 @@ type PortForwardConnection struct {
 // see https://github.com/kubernetes/kubernetes/blob/10ed4502f46d763a809ccdcc6c30be1c03e19147/pkg/kubelet/cri/streaming/portforward/portforward.go#L41
 // see https://github.com/kubernetes/kubernetes/blob/10ed4502f46d763a809ccdcc6c30be1c03e19147/pkg/kubelet/cri/streaming/portforward/httpstream.go#L36
 // see https://github.com/kubernetes/kubernetes/blob/10ed4502f46d763a809ccdcc6c30be1c03e19147/pkg/kubelet/cri/streaming/portforward/httpstream.go#L74
-func (forwarder *PortForwardConnection) Forward(conn net.Conn, port uint16) error {
+func (forwarder *PortForwardConnection) Forward(conn net.Conn, port uint16, serverPreface []byte, clientPreface []byte) error {
 	forwarder.wg.Add(1)
 	defer forwarder.wg.Done()
 	defer conn.Close()
@@ -87,6 +86,8 @@ func (forwarder *PortForwardConnection) Forward(conn net.Conn, port uint16) erro
 	localError := make(chan struct{})
 	remoteDone := make(chan struct{})
 
+	conn.Write(serverPreface)
+	dataStream.Write(clientPreface)
 	go func() {
 		// inform the select below that the remote copy is done
 		defer close(remoteDone)
@@ -361,48 +362,6 @@ func (resolver *HttpPortForwardResolver) LookupPodBackend(svcName string) *PodBa
 		return nil
 	}
 	return svc.LookupPodBackend()
-}
-
-func (resolver *HttpPortForwardResolver) GetHttpTransport(client *rest.RESTClient, config *rest.Config, namespace string) *http.Transport {
-	return &http.Transport{
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			host, _, err := net.SplitHostPort(addr)
-			if err != nil {
-				return nil, err
-			}
-
-			director := resolver.LookupServiceDirector(host)
-			if director == nil {
-				// TODO http 503
-				err = fmt.Errorf("%s svc not found", host)
-				runtime.HandleError(err)
-				return nil, err
-			}
-
-			backend := director.LookupPodBackend()
-			if backend == nil {
-				err := fmt.Errorf("%s pod not found", director.name)
-				return nil, err
-			}
-
-			conn, err := backend.DialPortForwardOnce(client, config, namespace)
-			if err != nil {
-				director.Evict(backend.Name())
-				return nil, err
-			}
-
-			local, remote := net.Pipe()
-			go func() {
-				defer local.Close()
-				err := conn.Forward(remote, director.TargetPort())
-				if err != nil {
-					director.Evict(backend.Name())
-				}
-			}()
-
-			return local, nil
-		},
-	}
 }
 
 func NewPortForwardResolver() *HttpPortForwardResolver {

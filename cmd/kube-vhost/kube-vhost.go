@@ -53,32 +53,48 @@ func (o *VhostProxyOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []st
 	if err != nil {
 		return err
 	}
-	resolver := vhost.NewPortForwardResolver()
+	httpResolver := vhost.NewPortForwardResolver()
+	grpcResolver := vhost.NewPortForwardResolver()
 	for _, svc := range serviceList.Items {
 		for _, svcPort := range kube.GetServicePorts(&svc) {
-			if svcPort.Name != "http" && svcPort.Port != 80 {
+			if svcPort.Name == "http" || svcPort.Port == 80 {
+				targetPort := uint16(svcPort.TargetPort.IntVal)
+				httpResolver.AddServiceMap(&svc, targetPort)
 				continue
 			}
 
-			targetPort := uint16(svcPort.TargetPort.IntVal)
-			resolver.AddServiceMap(&svc, targetPort)
-			break
+			if svcPort.Name == "grpc" || svcPort.Port == 81 {
+				targetPort := uint16(svcPort.TargetPort.IntVal)
+				grpcResolver.AddServiceMap(&svc, targetPort)
+				continue
+			}
 		}
 	}
 
-	resolver.OnAddPodBackend = func(backend *vhost.PodBackend) {
+	httpResolver.OnAddPodBackend = func(backend *vhost.PodBackend) {
 		podName := backend.Name()
 		backend.OnCreatePortForward = func() {
-			log.Printf("Created PortForward %s", podName)
+			log.Printf("Created http PortForward %s", podName)
 		}
 		backend.OnClosePortForward = func() {
-			log.Printf("Close PortForward %s", podName)
+			log.Printf("Close http PortForward %s", podName)
+		}
+	}
+
+	grpcResolver.OnAddPodBackend = func(backend *vhost.PodBackend) {
+		podName := backend.Name()
+		backend.OnCreatePortForward = func() {
+			log.Printf("Created grpc PortForward %s", podName)
+		}
+		backend.OnClosePortForward = func() {
+			log.Printf("Close grpc PortForward %s", podName)
 		}
 	}
 
 	podList, err := kube.GetPodList(ctx, client, namespace, selector)
 	for _, pod := range podList.Items {
-		resolver.UpdatePodBackend(&pod)
+		httpResolver.UpdatePodBackend(&pod)
+		grpcResolver.UpdatePodBackend(&pod)
 	}
 
 	watcher, err := kube.GetPodWatcher(ctx, client, namespace, selector, podList)
@@ -111,7 +127,8 @@ func (o *VhostProxyOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []st
 					}
 					log.Printf("Event: %s %s%v %s", e.Type, pod.Status.Phase, ready, pod.Name)
 				}
-				resolver.UpdatePodBackend(pod)
+				httpResolver.UpdatePodBackend(pod)
+				grpcResolver.UpdatePodBackend(pod)
 			}
 		}
 	}()
@@ -127,8 +144,8 @@ func (o *VhostProxyOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []st
 	}
 
 	mux := http.NewServeMux()
-	transport := resolver.GetHttpTransport(restClient, config, namespace)
-	for _, svc := range resolver.GetServiceDirectors() {
+	transport := httpResolver.GetHttpTransport(restClient, config, namespace)
+	for _, svc := range httpResolver.GetServiceDirectors() {
 		name := svc.Name()
 		vhost, err := url.Parse("http://" + name)
 		if err != nil {
@@ -138,7 +155,12 @@ func (o *VhostProxyOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []st
 		rp.Transport = transport
 		pattern := name + "/"
 		mux.HandleFunc(pattern, rp.ServeHTTP)
-		log.Printf("vhost proxy %s:%d", name, svc.TargetPort())
+		log.Printf("vhost http proxy %s:%d", name, svc.TargetPort())
+	}
+
+	for _, svc := range grpcResolver.GetServiceDirectors() {
+		name := svc.Name()
+		log.Printf("vhost grpc proxy %s:%d", name, svc.TargetPort())
 	}
 
 	l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", o.address, o.port))
@@ -146,7 +168,10 @@ func (o *VhostProxyOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []st
 		return err
 	}
 	log.Printf("Starting to serve on %s\n", l.Addr().String())
-	server := &http.Server{Handler: mux}
+
+	server := &http.Server{
+		Handler: grpcResolver.GetGRPCHandler(mux, restClient, config, namespace),
+	}
 	go server.Serve(l)
 	<-ctx.Done()
 	server.Close()
