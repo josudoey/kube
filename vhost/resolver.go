@@ -231,12 +231,12 @@ func NewPodBackend(name string) *PodBackend {
 }
 
 type ServiceDirector struct {
-	name               string
-	targetPort         uint16
-	activePodMapLock   sync.RWMutex
-	activePodMap       map[string]*PodBackend
-	directorPodMapLock sync.RWMutex
-	directorPodMap     map[string]*PodBackend
+	name             string
+	targetPort       uint16
+	activePodMapLock sync.RWMutex
+	activePodMap     map[string]*PodBackend
+	hotPodMapLock    sync.RWMutex
+	hotPodMap        map[string]*PodBackend
 }
 
 func (director *ServiceDirector) Name() string {
@@ -256,9 +256,9 @@ func (director *ServiceDirector) Evict(podName string) {
 	}
 	delete(director.activePodMap, podName)
 
-	director.directorPodMapLock.Lock()
-	defer director.directorPodMapLock.Unlock()
-	delete(director.directorPodMap, podName)
+	director.hotPodMapLock.Lock()
+	defer director.hotPodMapLock.Unlock()
+	delete(director.hotPodMap, podName)
 	go backend.Close()
 }
 
@@ -281,16 +281,16 @@ func (director *ServiceDirector) UpdatePodMap(pod *corev1.Pod) *PodBackend {
 }
 
 func (director *ServiceDirector) LookupPodBackend() *PodBackend {
-	director.directorPodMapLock.Lock()
-	defer director.directorPodMapLock.Unlock()
-	for _, pod := range director.directorPodMap {
+	director.hotPodMapLock.Lock()
+	defer director.hotPodMapLock.Unlock()
+	for _, pod := range director.hotPodMap {
 		return pod
 	}
 
 	director.activePodMapLock.RLock()
 	defer director.activePodMapLock.RUnlock()
 	for podName, pod := range director.activePodMap {
-		director.directorPodMap[podName] = pod
+		director.hotPodMap[podName] = pod
 		return pod
 	}
 	return nil
@@ -298,10 +298,10 @@ func (director *ServiceDirector) LookupPodBackend() *PodBackend {
 
 func NewServiceDirector(name string, targetPort uint16) *ServiceDirector {
 	return &ServiceDirector{
-		name:           name,
-		targetPort:     targetPort,
-		activePodMap:   map[string]*PodBackend{},
-		directorPodMap: map[string]*PodBackend{},
+		name:         name,
+		targetPort:   targetPort,
+		activePodMap: map[string]*PodBackend{},
+		hotPodMap:    map[string]*PodBackend{},
 	}
 }
 
