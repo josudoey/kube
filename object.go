@@ -7,7 +7,7 @@ import (
 
 // see https://github.com/kubernetes/kubectl/blob/master/pkg/polymorphichelpers/helpers.go#L84
 
-// GetService
+// GetPod
 func GetPod(object runtime.Object) *corev1.Pod {
 	switch t := object.(type) {
 	case *corev1.Pod:
