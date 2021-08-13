@@ -304,13 +304,13 @@ func NewServiceDirector(name string, targetPort uint16) *ServiceDirector {
 	}
 }
 
-type HttpPortForwardResolver struct {
+type PortForwardResolver struct {
 	serviceMapLock  sync.RWMutex
 	serviceMap      map[string]*ServiceDirector
 	OnAddPodBackend func(backend *PodBackend)
 }
 
-func (resolver *HttpPortForwardResolver) UpdatePodBackend(pod *corev1.Pod) {
+func (resolver *PortForwardResolver) UpdatePodBackend(pod *corev1.Pod) {
 	resolver.serviceMapLock.RLock()
 	defer resolver.serviceMapLock.RUnlock()
 	svcName := GenerateNameSuffix.ReplaceAllString(pod.GenerateName, "")
@@ -328,7 +328,7 @@ func (resolver *HttpPortForwardResolver) UpdatePodBackend(pod *corev1.Pod) {
 	go resolver.OnAddPodBackend(backend)
 }
 
-func (resolver *HttpPortForwardResolver) AddServiceMap(svc *corev1.Service, targetPort uint16) *ServiceDirector {
+func (resolver *PortForwardResolver) AddServiceMap(svc *corev1.Service, targetPort uint16) *ServiceDirector {
 	name := svc.Name
 	resolver.serviceMapLock.Lock()
 	defer resolver.serviceMapLock.Unlock()
@@ -345,7 +345,7 @@ func (resolver *HttpPortForwardResolver) AddServiceMap(svc *corev1.Service, targ
 	return svcDirector
 }
 
-func (resolver *HttpPortForwardResolver) GetServiceNames() []string {
+func (resolver *PortForwardResolver) GetServiceNames() []string {
 	items := []string{}
 	for name, _ := range resolver.serviceMap {
 		items = append(items, name)
@@ -353,7 +353,7 @@ func (resolver *HttpPortForwardResolver) GetServiceNames() []string {
 	return items
 }
 
-func (resolver *HttpPortForwardResolver) GetServiceDirectors() []*ServiceDirector {
+func (resolver *PortForwardResolver) GetServiceDirectors() []*ServiceDirector {
 	items := []*ServiceDirector{}
 	for _, item := range resolver.serviceMap {
 		items = append(items, item)
@@ -361,13 +361,13 @@ func (resolver *HttpPortForwardResolver) GetServiceDirectors() []*ServiceDirecto
 	return items
 }
 
-func (resolver *HttpPortForwardResolver) LookupServiceDirector(svcName string) *ServiceDirector {
+func (resolver *PortForwardResolver) LookupServiceDirector(svcName string) *ServiceDirector {
 	resolver.serviceMapLock.RLock()
 	defer resolver.serviceMapLock.RUnlock()
 	return resolver.serviceMap[svcName]
 }
 
-func (resolver *HttpPortForwardResolver) LookupPodBackend(svcName string) *PodBackend {
+func (resolver *PortForwardResolver) LookupPodBackend(svcName string) *PodBackend {
 	resolver.serviceMapLock.RLock()
 	defer resolver.serviceMapLock.RUnlock()
 	svc := resolver.serviceMap[svcName]
@@ -377,8 +377,8 @@ func (resolver *HttpPortForwardResolver) LookupPodBackend(svcName string) *PodBa
 	return svc.LookupPodBackend()
 }
 
-func NewPortForwardResolver() *HttpPortForwardResolver {
-	resolver := &HttpPortForwardResolver{
+func NewPortForwardResolver() *PortForwardResolver {
+	resolver := &PortForwardResolver{
 		serviceMap: map[string]*ServiceDirector{},
 	}
 	return resolver
