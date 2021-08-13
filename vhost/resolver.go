@@ -46,7 +46,7 @@ type PortForwardConnection struct {
 
 // Forward copies data between the local connection and the stream to
 // the remote server.
-// see https://github.com/kubernetes/client-go/blob/master/tools/portforward/portforward.go#L324
+// see https://github.com/kubernetes/client-go/blob/94daee0164805ef86cc36790c662b7f074db10ec/tools/portforward/portforward.go#L324
 // see https://github.com/kubernetes/kubernetes/blob/10ed4502f46d763a809ccdcc6c30be1c03e19147/pkg/kubelet/cri/streaming/server.go#L132
 // see https://github.com/kubernetes/kubernetes/blob/10ed4502f46d763a809ccdcc6c30be1c03e19147/pkg/kubelet/cri/streaming/portforward/portforward.go#L41
 // see https://github.com/kubernetes/kubernetes/blob/10ed4502f46d763a809ccdcc6c30be1c03e19147/pkg/kubelet/cri/streaming/portforward/httpstream.go#L36
