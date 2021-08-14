@@ -32,7 +32,7 @@ func (o *PodWatcherOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []st
 
 	ctx := context.Background()
 	podList, err := kube.GetPodList(ctx, client, namespace, selector)
-	watcher, err := kube.GetPodWatcher(ctx, client, namespace, selector, podList)
+	watcher, err := kube.GetPodWatcher(ctx, client, namespace, selector, podList.ResourceVersion)
 	if err != nil {
 		return err
 	}
