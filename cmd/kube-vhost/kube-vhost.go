@@ -108,6 +108,9 @@ func (o *KubeVhostOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []str
 		httpResolver.UpdatePodBackend(&pod)
 		grpcResolver.UpdatePodBackend(&pod)
 	}
+	if err != nil {
+		return err
+	}
 
 	watcher, err := kube.GetPodWatcher(ctx, client, namespace, selector, podList.ResourceVersion)
 	if err != nil {

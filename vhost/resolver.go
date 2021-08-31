@@ -231,6 +231,7 @@ func NewPodBackend(name string) *PodBackend {
 
 type ServiceDirector struct {
 	name             string
+	selectorName     string
 	targetPort       uint16
 	activePodMapLock sync.RWMutex
 	activePodMap     map[string]*PodBackend
@@ -240,6 +241,10 @@ type ServiceDirector struct {
 
 func (director *ServiceDirector) Name() string {
 	return director.name
+}
+
+func (director *ServiceDirector) SelectorName() string {
+	return director.selectorName
 }
 
 func (director *ServiceDirector) TargetPort() uint16 {
@@ -295,9 +300,10 @@ func (director *ServiceDirector) LookupPodBackend() *PodBackend {
 	return nil
 }
 
-func NewServiceDirector(name string, targetPort uint16) *ServiceDirector {
+func NewServiceDirector(name string, selectorName string, targetPort uint16) *ServiceDirector {
 	return &ServiceDirector{
 		name:         name,
+		selectorName: selectorName,
 		targetPort:   targetPort,
 		activePodMap: map[string]*PodBackend{},
 		hotPodMap:    map[string]*PodBackend{},
@@ -307,14 +313,15 @@ func NewServiceDirector(name string, targetPort uint16) *ServiceDirector {
 type PortForwardResolver struct {
 	serviceMapLock  sync.RWMutex
 	serviceMap      map[string]*ServiceDirector
+	selectorMap     map[string]*ServiceDirector
 	OnAddPodBackend func(backend *PodBackend)
 }
 
 func (resolver *PortForwardResolver) UpdatePodBackend(pod *corev1.Pod) {
 	resolver.serviceMapLock.RLock()
 	defer resolver.serviceMapLock.RUnlock()
-	svcName := GenerateNameSuffix.ReplaceAllString(pod.GenerateName, "")
-	svc := resolver.serviceMap[svcName]
+	deploymentName := GenerateNameSuffix.ReplaceAllString(pod.GenerateName, "")
+	svc := resolver.LookupServiceDirectorBySelector(deploymentName)
 	if svc == nil {
 		return
 	}
@@ -329,25 +336,30 @@ func (resolver *PortForwardResolver) UpdatePodBackend(pod *corev1.Pod) {
 }
 
 func (resolver *PortForwardResolver) AddServiceMap(svc *corev1.Service, targetPort uint16) *ServiceDirector {
-	name := svc.Name
+	selectorName := svc.Spec.Selector["name"]
+	if selectorName == "" {
+		return nil
+	}
 	resolver.serviceMapLock.Lock()
 	defer resolver.serviceMapLock.Unlock()
-	_, exists := resolver.serviceMap[name]
+	_, exists := resolver.serviceMap[svc.Name]
 	if exists {
 		return nil
 	}
 	svcDirector := NewServiceDirector(
-		name,
+		svc.Name,
+		selectorName,
 		targetPort,
 	)
 
-	resolver.serviceMap[name] = svcDirector
+	resolver.serviceMap[svc.Name] = svcDirector
+	resolver.selectorMap[selectorName] = svcDirector
 	return svcDirector
 }
 
 func (resolver *PortForwardResolver) GetServiceNames() []string {
 	items := []string{}
-	for name, _ := range resolver.serviceMap {
+	for name := range resolver.serviceMap {
 		items = append(items, name)
 	}
 	return items
@@ -367,6 +379,12 @@ func (resolver *PortForwardResolver) LookupServiceDirector(svcName string) *Serv
 	return resolver.serviceMap[svcName]
 }
 
+func (resolver *PortForwardResolver) LookupServiceDirectorBySelector(selectorName string) *ServiceDirector {
+	resolver.serviceMapLock.RLock()
+	defer resolver.serviceMapLock.RUnlock()
+	return resolver.selectorMap[selectorName]
+}
+
 func (resolver *PortForwardResolver) LookupPodBackend(svcName string) *PodBackend {
 	resolver.serviceMapLock.RLock()
 	defer resolver.serviceMapLock.RUnlock()
@@ -379,7 +397,8 @@ func (resolver *PortForwardResolver) LookupPodBackend(svcName string) *PodBacken
 
 func NewPortForwardResolver() *PortForwardResolver {
 	resolver := &PortForwardResolver{
-		serviceMap: map[string]*ServiceDirector{},
+		serviceMap:  map[string]*ServiceDirector{},
+		selectorMap: map[string]*ServiceDirector{},
 	}
 	return resolver
 }
