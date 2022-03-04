@@ -31,32 +31,36 @@ func (o *PodWatcherOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []st
 	}
 
 	ctx := context.Background()
-	podList, err := kube.GetPodList(ctx, client, namespace, selector)
-	watcher, err := kube.GetPodWatcher(ctx, client, namespace, selector, podList.ResourceVersion)
+	podList, err := kube.GetPodList(ctx, client,
+		kube.WithNamespace(namespace),
+		kube.WithLabelSelector(selector),
+	)
 	if err != nil {
 		return err
 	}
 
-	ch := watcher.ResultChan()
-	for {
-		select {
-		case e, ok := <-ch:
-			if !ok {
-				log.Printf("PodWatcher Closed")
-				return nil
-			}
-
-			pod := kube.GetPod(e.Object)
-			if pod == nil {
-				continue
-			}
-			ready := ""
-			if kube.IsPodReady(pod) {
-				ready = "(Ready)"
-			}
-			log.Printf("Event: %s %s%v %s", e.Type, pod.Status.Phase, ready, pod.Name)
-		}
+	watcher, err := kube.GetPodWatcher(ctx, client,
+		kube.WithNamespace(namespace),
+		kube.WithLabelSelector(selector),
+		kube.WithResourceVersion(podList.ResourceVersion),
+	)
+	if err != nil {
+		return err
 	}
+
+	eventChan := watcher.ResultChan()
+	for e := range eventChan {
+		pod := kube.GetPod(e.Object)
+		if pod == nil {
+			continue
+		}
+		ready := ""
+		if kube.IsPodReady(pod) {
+			ready = "(Ready)"
+		}
+		log.Printf("Event: %s %s%v %s", e.Type, pod.Status.Phase, ready, pod.Name)
+	}
+	return nil
 }
 
 func main() {

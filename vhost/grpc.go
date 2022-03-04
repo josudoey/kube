@@ -127,7 +127,6 @@ func (s *grpcServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 func (resolver *PortForwardResolver) GetGRPCHandler(base http.Handler, client *rest.RESTClient, config *rest.Config, namespace string) http.Handler {
 	handleConnection := func(local net.Conn, preface *GRPCPreface) error {
 		addr := ""
-
 		// see https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests
 		for _, f := range preface.Header {
 			if f.Name != ":authority" {
@@ -136,37 +135,26 @@ func (resolver *PortForwardResolver) GetGRPCHandler(base http.Handler, client *r
 			addr = f.Value
 		}
 
-		host, _, err := net.SplitHostPort(addr)
-		if err != nil {
-			return err
-		}
-
-		director := resolver.LookupServiceDirector(host)
-		if director == nil {
-			// TODO http 503
-			err = fmt.Errorf("%s svc not found", host)
-			runtime.HandleError(err)
-			return err
-		}
-
-		backend := director.LookupPodBackend()
+		backend := resolver.ResolveBackend(addr)
 		if backend == nil {
-			err := fmt.Errorf("%s pod not found", director.Name())
+			err := fmt.Errorf("%s svc not found", addr)
+			runtime.HandleError(err)
 			return err
 		}
 
 		conn, err := backend.DialPortForwardOnce(client, config, namespace)
 		if err != nil {
-			director.Evict(backend.Name())
+			resolver.DeleteByName(backend.GetName())
 			return err
 		}
 		conn.OnCreateStream = backend.OnCreateStream
 		conn.OnCloseStream = backend.OnCloseStream
 
 		go func() {
-			err := conn.Forward(local, director.TargetPort(), preface.ClientPreface)
+			defer local.Close()
+			err := conn.Forward(local, uint16(backend.GetTargetPort()), preface.ClientPreface)
 			if err != nil {
-				director.Evict(backend.Name())
+				resolver.DeleteByName(backend.GetName())
 			}
 		}()
 		return nil
@@ -183,7 +171,6 @@ func (resolver *PortForwardResolver) GetGRPCHandler(base http.Handler, client *r
 				if err != nil {
 					return
 				}
-
 				preface, err := GetGRPCPreface(conn, rw)
 				if err != nil {
 					return

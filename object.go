@@ -33,18 +33,3 @@ func GetServicePorts(object runtime.Object) []corev1.ServicePort {
 	}
 	return svc.Spec.Ports
 }
-
-// GetServicePort
-func GetServicePort(object runtime.Object, name string) *corev1.ServicePort {
-	svc := GetService(object)
-	if svc == nil {
-		return nil
-	}
-	for _, port := range svc.Spec.Ports {
-		if port.Name != name {
-			continue
-		}
-		return &port
-	}
-	return nil
-}

@@ -11,10 +11,14 @@ import (
 // GetFirstPod returns a pod matching the namespace and label selector
 // and the number of all pods that match the label selector.
 // see https://github.com/kubernetes/apiserver/blob/92392ef22153d75b3645b0ae339f89c12767fb52/pkg/endpoints/handlers/watch.go
-func GetPodWatcher(ctx context.Context, client coreclient.PodsGetter, namespace string, selector string, resourceVersion string) (watch.Interface, error) {
-	options := metav1.ListOptions{
-		LabelSelector:   selector,
-		ResourceVersion: resourceVersion,
+func GetPodWatcher(ctx context.Context, client coreclient.PodsGetter, opts ...KubeOption) (watch.Interface, error) {
+	o := &KubeOptions{}
+	for _, opt := range opts {
+		opt(o)
 	}
-	return client.Pods(namespace).Watch(ctx, options)
+	options := metav1.ListOptions{
+		LabelSelector:   o.LabelSelector,
+		ResourceVersion: o.ResourceVersion,
+	}
+	return client.Pods(o.Namespace).Watch(ctx, options)
 }
