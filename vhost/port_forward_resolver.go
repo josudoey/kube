@@ -11,9 +11,11 @@ import (
 	"strings"
 	"sync"
 
-	corev1 "k8s.io/api/core/v1"
+	"github.com/josudoey/kube"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
@@ -58,9 +60,9 @@ func (forwarder *PortForwardConnection) Forward(conn net.Conn, port uint16, clie
 
 	// create error stream
 	headers := http.Header{}
-	headers.Set(corev1.StreamType, corev1.StreamTypeError)
-	headers.Set(corev1.PortHeader, fmt.Sprintf("%d", port))
-	headers.Set(corev1.PortForwardRequestIDHeader, strconv.Itoa(requestID))
+	headers.Set(v1.StreamType, v1.StreamTypeError)
+	headers.Set(v1.PortHeader, fmt.Sprintf("%d", port))
+	headers.Set(v1.PortForwardRequestIDHeader, strconv.Itoa(requestID))
 	errorStream, err := forwarder.CreateStream(headers)
 	if err != nil {
 		return err
@@ -79,7 +81,7 @@ func (forwarder *PortForwardConnection) Forward(conn net.Conn, port uint16, clie
 	}()
 
 	// create data stream
-	headers.Set(corev1.StreamType, corev1.StreamTypeData)
+	headers.Set(v1.StreamType, v1.StreamTypeData)
 	dataStream, err := forwarder.CreateStream(headers)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("error creating forwarding stream for port %d: %v", port, err))
@@ -173,7 +175,7 @@ func DialPortForwardConnection(client *rest.RESTClient, config *rest.Config, nam
 	}, nil
 }
 
-func (resolver *PortForwardResolver) AddService(svc corev1.Service) []*ServicePortEntry {
+func (resolver *PortForwardResolver) AddService(svc v1.Service) []*ServicePortEntry {
 	_, selector, err := polymorphichelpers.SelectorsForObject(&svc)
 	if err != nil {
 		return nil
@@ -204,7 +206,7 @@ func (resolver *PortForwardResolver) AddService(svc corev1.Service) []*ServicePo
 	return nil
 }
 
-func (resolver *PortForwardResolver) AddPod(pod corev1.Pod) {
+func (resolver *PortForwardResolver) AddPod(pod v1.Pod) {
 	podName := pod.GetName()
 	ready := podutils.IsPodReady(&pod)
 	if !ready {
@@ -243,7 +245,7 @@ func (resolver *PortForwardResolver) DeleteByName(podName string) {
 	})
 }
 
-func (resolver *PortForwardResolver) UpdatePod(pod *corev1.Pod) {
+func (resolver *PortForwardResolver) UpdatePod(pod *v1.Pod) {
 	podName := pod.GetName()
 	ready := podutils.IsPodReady(pod)
 	_, exists := resolver.pods.Get(podName)
@@ -291,34 +293,40 @@ func (resolver *PortForwardResolver) ResolveAddr(addr string) string {
 	return backend.GetTargetHostPort()
 }
 
-func (resolver *PortForwardResolver) GetDialContext(restClient *rest.RESTClient, config *rest.Config, namespace string) func(ctx context.Context, network, addr string) (net.Conn, error) {
-	return func(ctx context.Context, network, addr string) (net.Conn, error) {
-		host, port, err := net.SplitHostPort(resolver.ResolveAddr(addr))
-		if err != nil {
-			return nil, err
-		}
-
-		conn, err := DialPortForwardConnection(restClient, config, namespace, host)
-		if err != nil {
-			return nil, err
-		}
-
-		local, remote := net.Pipe()
-		go func() {
-			defer local.Close()
-			p, _ := strconv.ParseUint(port, 10, 16)
-			conn.Forward(remote, uint16(p), nil)
-		}()
-		return local, nil
-	}
-}
-
 func (resolver *PortForwardResolver) ListServices() []ServicePortEntry {
 	items := []ServicePortEntry{}
 	for _, item := range resolver.services {
 		items = append(items, *item)
 	}
 	return items
+}
+
+func (resolver *PortForwardResolver) PullServices(ctx context.Context, client coreclient.ServicesGetter, options ...kube.KubeOption) (*v1.ServiceList, error) {
+	serviceList, err := kube.GetServiceList(ctx, client,
+		options...,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, svc := range serviceList.Items {
+		resolver.AddService(svc)
+	}
+	return serviceList, nil
+}
+
+func (resolver *PortForwardResolver) PullPods(ctx context.Context, client coreclient.PodsGetter, options ...kube.KubeOption) (*v1.PodList, error) {
+	podList, err := kube.GetPodList(ctx, client,
+		options...,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pod := range podList.Items {
+		resolver.AddPod(pod)
+	}
+	return podList, nil
 }
 
 type PortForwardResolver struct {

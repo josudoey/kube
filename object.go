@@ -24,12 +24,3 @@ func GetService(object runtime.Object) *corev1.Service {
 	}
 	return nil
 }
-
-// GetServicePorts
-func GetServicePorts(object runtime.Object) []corev1.ServicePort {
-	svc := GetService(object)
-	if svc == nil {
-		return nil
-	}
-	return svc.Spec.Ports
-}

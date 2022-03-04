@@ -12,10 +12,7 @@ import (
 var IsPodReady = podutils.IsPodReady
 
 func GetPodList(ctx context.Context, client coreclient.PodsGetter, opts ...KubeOption) (*corev1.PodList, error) {
-	o := &KubeOptions{}
-	for _, opt := range opts {
-		opt(o)
-	}
+	o := GetKubeOptions(opts)
 	options := metav1.ListOptions{LabelSelector: o.LabelSelector}
 	return client.Pods(o.Namespace).List(ctx, options)
 }
