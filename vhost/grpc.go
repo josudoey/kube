@@ -187,7 +187,7 @@ func (resolver *PortForwardResolver) GetGRPCHandler(base http.Handler, client re
 	return handler
 }
 
-func (resolver *PortForwardResolver) GetGRPCContextDialer(restClient *rest.RESTClient, config *rest.Config, namespace string) grpc.DialOption {
+func (resolver *PortForwardResolver) GetGRPCContextDialer(restClient rest.Interface, config *rest.Config, namespace string) grpc.DialOption {
 	return grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
 		host, port, err := net.SplitHostPort(resolver.ResolveAddr(addr))
 		if err != nil {
