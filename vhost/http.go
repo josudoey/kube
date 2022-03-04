@@ -10,7 +10,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func (resolver *PortForwardResolver) GetHttpTransport(client *rest.RESTClient, config *rest.Config, namespace string) *http.Transport {
+func (resolver *PortForwardResolver) GetHTTPTransport(client *rest.RESTClient, config *rest.Config, namespace string) *http.Transport {
 	return &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			backend := resolver.ResolveBackend(addr)
