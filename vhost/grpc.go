@@ -127,7 +127,7 @@ func (s *grpcServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	s.serveHTTP(rw, req)
 }
 
-func (resolver *PortForwardResolver) GetGRPCHandler(base http.Handler, client *rest.RESTClient, config *rest.Config, namespace string) http.Handler {
+func (resolver *PortForwardResolver) GetGRPCHandler(base http.Handler, client rest.Interface, config *rest.Config, namespace string) http.Handler {
 	handleConnection := func(local net.Conn, preface *GRPCPreface) error {
 		addr := ""
 		// see https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests

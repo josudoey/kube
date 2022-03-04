@@ -61,7 +61,7 @@ func (backend *PodBackend) Close() error {
 	return backend.connection.Close()
 }
 
-func (backend *PodBackend) DialPortForwardOnce(client *rest.RESTClient, config *rest.Config, namespace string) (*PortForwardConnection, error) {
+func (backend *PodBackend) DialPortForwardOnce(client rest.Interface, config *rest.Config, namespace string) (*PortForwardConnection, error) {
 	backend.dialOnce.Do(func() {
 		connection, err := DialPortForwardConnection(client, config, namespace, backend.GetName())
 		if err != nil {

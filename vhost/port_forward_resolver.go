@@ -149,7 +149,7 @@ func (forwarder *PortForwardConnection) Close() error {
 	return forwarder.Connection.Close()
 }
 
-func DialPortForwardConnection(client *rest.RESTClient, config *rest.Config, namespace string, podName string) (*PortForwardConnection, error) {
+func DialPortForwardConnection(client rest.Interface, config *rest.Config, namespace string, podName string) (*PortForwardConnection, error) {
 	var err error
 	req := client.Post().
 		Resource("pods").

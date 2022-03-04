@@ -49,19 +49,7 @@ func (o *KubeVhostOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []str
 	}
 
 	ctx := context.Background()
-	serviceList, err := kube.GetServiceList(ctx, client,
-		kube.WithNamespace(namespace),
-		kube.WithLabelSelector(selector),
-	)
-	if err != nil {
-		return err
-	}
-
 	resolver := vhost.NewPortForwardResolver()
-	for _, svc := range serviceList.Items {
-		resolver.AddService(svc)
-	}
-
 	resolver.OnAddServiceBackend = func(entry vhost.ServicePortEntry, backend *vhost.PodBackend) {
 		sourceHostName := entry.SourceHostName()
 		targetHostPort := backend.GetTargetHostPort()
@@ -82,15 +70,20 @@ func (o *KubeVhostOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []str
 		}
 	}
 
-	podList, err := kube.GetPodList(ctx, client,
+	resolver.PullServices(ctx, client,
 		kube.WithNamespace(namespace),
 		kube.WithLabelSelector(selector),
 	)
 	if err != nil {
 		return err
 	}
-	for _, pod := range podList.Items {
-		resolver.AddPod(pod)
+
+	podList, err := resolver.PullPods(ctx, client,
+		kube.WithNamespace(namespace),
+		kube.WithLabelSelector(selector),
+	)
+	if err != nil {
+		return err
 	}
 
 	watcher, err := kube.GetPodWatcher(ctx, client,
@@ -129,13 +122,8 @@ func (o *KubeVhostOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []str
 		return err
 	}
 
-	restClient, err := f.RESTClient()
-	if err != nil {
-		return err
-	}
-
 	mux := http.NewServeMux()
-	transport := resolver.GetHttpTransport(restClient, config, namespace)
+	transport := resolver.GetHTTPTransport(client.RESTClient(), config, namespace)
 	for _, svc := range resolver.ListServices() {
 		name := svc.SourceHostName()
 		vhost, err := url.Parse("http://" + name)
@@ -155,7 +143,7 @@ func (o *KubeVhostOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []str
 	}
 
 	server := &http.Server{
-		Handler: resolver.GetGRPCHandler(mux, restClient, config, namespace),
+		Handler: resolver.GetGRPCHandler(mux, client.RESTClient(), config, namespace),
 	}
 	go server.Serve(l)
 	<-ctx.Done()
