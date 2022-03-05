@@ -196,12 +196,8 @@ func (resolver *PortForwardResolver) AddService(svc v1.Service) []*ServicePortEn
 			ServicePort: svcPort,
 			Selector:    selector,
 		}
-		sourceHostName := entry.SourceHostName()
-		_, exists := resolver.services[sourceHostName]
-		if exists {
-			continue
-		}
-		resolver.services[sourceHostName] = entry
+
+		resolver.router.AddIfNotExists(entry)
 	}
 	return nil
 }
@@ -218,7 +214,7 @@ func (resolver *PortForwardResolver) AddPod(pod v1.Pod) {
 		return
 	}
 
-	for _, service := range resolver.services {
+	for _, service := range resolver.router.Values() {
 		if !service.Match(pod) {
 			continue
 		}
@@ -262,14 +258,9 @@ func (resolver *PortForwardResolver) UpdatePod(pod *v1.Pod) {
 	resolver.AddPod(*pod)
 }
 
-func (resolver *PortForwardResolver) ResolveBackend(addr string) *PodBackend {
-	host, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		host = addr
-	}
-
-	entry, ok := resolver.services[host]
-	if !ok {
+func (resolver *PortForwardResolver) ResolveBackend(hostname string) *PodBackend {
+	entry := resolver.router.Resolve(hostname)
+	if entry == nil {
 		return nil
 	}
 
@@ -277,25 +268,20 @@ func (resolver *PortForwardResolver) ResolveBackend(addr string) *PodBackend {
 }
 
 func (resolver *PortForwardResolver) ResolveAddr(addr string) string {
-	host, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		host = addr
-	}
-
-	entry, ok := resolver.services[host]
-	if !ok {
-		return host
+	entry := resolver.router.Resolve(addr)
+	if entry == nil {
+		return addr
 	}
 	backend := resolver.activeBackend.GetOne(entry)
 	if backend == nil {
-		return host
+		return addr
 	}
 	return backend.GetTargetHostPort()
 }
 
 func (resolver *PortForwardResolver) ListServices() []ServicePortEntry {
 	items := []ServicePortEntry{}
-	for _, item := range resolver.services {
+	for _, item := range resolver.router.Values() {
 		items = append(items, *item)
 	}
 	return items
@@ -330,7 +316,7 @@ func (resolver *PortForwardResolver) PullPods(ctx context.Context, client corecl
 }
 
 type PortForwardResolver struct {
-	services      map[string]*ServicePortEntry
+	router        ServicePortEntryRouter
 	pods          PodMap
 	activeBackend ServiceBackend
 
@@ -338,8 +324,6 @@ type PortForwardResolver struct {
 }
 
 func NewPortForwardResolver() *PortForwardResolver {
-	resolver := &PortForwardResolver{
-		services: map[string]*ServicePortEntry{},
-	}
+	resolver := &PortForwardResolver{}
 	return resolver
 }

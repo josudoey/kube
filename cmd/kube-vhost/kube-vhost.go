@@ -70,7 +70,7 @@ func (o *KubeVhostOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []str
 		}
 	}
 
-	resolver.PullServices(ctx, client,
+	_, err = resolver.PullServices(ctx, client,
 		kube.WithNamespace(namespace),
 		kube.WithLabelSelector(selector),
 	)

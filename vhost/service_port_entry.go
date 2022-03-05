@@ -22,8 +22,5 @@ func (s *ServicePortEntry) SourceHostPort() string {
 }
 
 func (s *ServicePortEntry) SourceHostName() string {
-	if s.ServicePort.Name == "" {
-		return s.Service.GetName() + "-" + strconv.Itoa(int(s.ServicePort.Port))
-	}
-	return s.Service.GetName() + "-" + s.ServicePort.Name
+	return s.Service.GetName() + "-" + strconv.Itoa(int(s.ServicePort.Port))
 }

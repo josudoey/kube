@@ -7,6 +7,50 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+type ServicePortEntryRouter struct {
+	m sync.Map
+}
+
+func (p *ServicePortEntryRouter) AddIfNotExists(item *ServicePortEntry) (actual *ServicePortEntry, loaded bool) {
+	hostPort := item.SourceHostPort()
+	v, loaded := p.m.LoadOrStore(hostPort, item)
+	if !loaded {
+		hostName := item.SourceHostName()
+		p.m.Store(item, item)
+		p.m.Store(hostName, item)
+	}
+	actual, _ = v.(*ServicePortEntry)
+	return actual, loaded
+}
+
+func (p *ServicePortEntryRouter) Range(f func(item *ServicePortEntry) bool) {
+	p.m.Range(func(k, v interface{}) bool {
+		key, ok := k.(*ServicePortEntry)
+		if !ok {
+			return true
+		}
+		return f(key)
+	})
+}
+
+func (p *ServicePortEntryRouter) Values() []*ServicePortEntry {
+	items := []*ServicePortEntry{}
+	p.Range(func(item *ServicePortEntry) bool {
+		items = append(items, item)
+		return true
+	})
+	return items
+}
+
+func (p *ServicePortEntryRouter) Resolve(hostNameOrPort string) *ServicePortEntry {
+	v, ok := p.m.Load(hostNameOrPort)
+	if !ok {
+		return nil
+	}
+	item, _ := v.(*ServicePortEntry)
+	return item
+}
+
 type PodMap struct {
 	m sync.Map
 }

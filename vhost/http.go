@@ -13,7 +13,11 @@ import (
 func (resolver *PortForwardResolver) GetHTTPTransport(client rest.Interface, config *rest.Config, namespace string) *http.Transport {
 	return &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			backend := resolver.ResolveBackend(addr)
+			host, _, err := net.SplitHostPort(addr)
+			if err != nil {
+				host = addr
+			}
+			backend := resolver.ResolveBackend(host)
 			if backend == nil {
 				err := fmt.Errorf("%s svc not found", addr)
 				runtime.HandleError(err)
