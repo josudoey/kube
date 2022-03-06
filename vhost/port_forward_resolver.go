@@ -173,6 +173,8 @@ func DialPortForwardConnection(client rest.Interface, config *rest.Config, names
 }
 
 func (resolver *PortForwardResolver) AddService(svc v1.Service) []*ServicePortEntry {
+	// see https://github.com/kubernetes/kubernetes/blob/3775ac6d1923385ef2cc4ea6d2a6997e00218799/pkg/controller/endpoint/endpoints_controller.go#L398
+	// see https://github.com/kubernetes/kubectl/blob/71d8052cb02fded2a847cbd6e2de28f44deb0846/pkg/polymorphichelpers/helpers.go#L184
 	_, selector, err := polymorphichelpers.SelectorsForObject(&svc)
 	if err != nil {
 		return nil
