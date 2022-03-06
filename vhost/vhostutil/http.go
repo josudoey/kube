@@ -12,10 +12,10 @@ import (
 )
 
 func HTTPPortFordwardFor(resolver *vhost.PortForwardResolver, restClient rest.Interface, config *rest.Config, namespace string) http.RoundTripper {
-	dialPortForwad := PortForwadDialer(resolver, restClient, config, namespace)
+	dialPortForward := PortForwardDialer(resolver, restClient, config, namespace)
 	return &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return dialPortForwad(ctx, addr)
+			return dialPortForward(ctx, addr)
 		},
 	}
 }

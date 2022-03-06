@@ -10,7 +10,7 @@ import (
 
 func GRPCPortForwardFor(resolver *vhost.PortForwardResolver, restClient rest.Interface, config *rest.Config, namespace string) grpc.DialOption {
 	return grpc.WithContextDialer(
-		PortForwadDialer(resolver, restClient, config, namespace),
+		PortForwardDialer(resolver, restClient, config, namespace),
 	)
 }
 

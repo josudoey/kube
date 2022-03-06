@@ -13,7 +13,7 @@ import (
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 )
 
-func PortForwadDialer(resolver *vhost.PortForwardResolver, restClient rest.Interface, config *rest.Config, namespace string) func(ctx context.Context, addr string) (net.Conn, error) {
+func PortForwardDialer(resolver *vhost.PortForwardResolver, restClient rest.Interface, config *rest.Config, namespace string) func(ctx context.Context, addr string) (net.Conn, error) {
 	return func(ctx context.Context, addr string) (net.Conn, error) {
 		host, port, err := net.SplitHostPort(resolver.ResolveAddr(addr))
 		if err != nil {
