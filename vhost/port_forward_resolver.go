@@ -271,7 +271,7 @@ func (resolver *PortForwardResolver) ResolveAddr(addr string) string {
 	}
 	backend := resolver.activeBackend.GetOne(entry)
 	if backend == nil {
-		return addr
+		return entry.TargetHostPort()
 	}
 	return backend.GetTargetHostPort()
 }

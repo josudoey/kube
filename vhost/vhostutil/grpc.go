@@ -1,10 +1,6 @@
 package vhostutil
 
 import (
-	"context"
-	"net"
-	"strconv"
-
 	"github.com/josudoey/kube"
 	"github.com/josudoey/kube/vhost"
 	"google.golang.org/grpc"
@@ -13,25 +9,9 @@ import (
 )
 
 func GRPCPortForwardFor(resolver *vhost.PortForwardResolver, restClient rest.Interface, config *rest.Config, namespace string) grpc.DialOption {
-	return grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
-		host, port, err := net.SplitHostPort(resolver.ResolveAddr(addr))
-		if err != nil {
-			return nil, err
-		}
-
-		conn, err := vhost.DialPortForwardConnection(restClient, config, namespace, host)
-		if err != nil {
-			return nil, err
-		}
-
-		local, remote := net.Pipe()
-		go func() {
-			defer local.Close()
-			p, _ := strconv.ParseUint(port, 10, 16)
-			conn.Forward(remote, uint16(p), nil)
-		}()
-		return local, nil
-	})
+	return grpc.WithContextDialer(
+		PortForwadDialer(resolver, restClient, config, namespace),
+	)
 }
 
 func GRPCPortForward(f cmdutil.Factory, opts ...kube.KubeOption) (grpc.DialOption, error) {

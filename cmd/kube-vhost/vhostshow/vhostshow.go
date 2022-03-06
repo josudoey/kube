@@ -54,7 +54,7 @@ func (o *KubeVhostShowOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args [
 
 func NewCommand() *cobra.Command {
 	o := NewKubeVhostShowOptions()
-	f := kube.GetDefaultFactory()
+	f := kube.DefaultFactory()
 
 	cmd := &cobra.Command{
 		Use: "show",

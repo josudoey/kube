@@ -65,7 +65,7 @@ func (o *PodWatcherOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []st
 
 func main() {
 	o := NewPodWatcherOptions()
-	f := kube.GetDefaultFactory()
+	f := kube.DefaultFactory()
 
 	cmd := &cobra.Command{
 		Use: "kube-pod-watcher",

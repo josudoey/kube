@@ -8,7 +8,7 @@ import (
 )
 
 // see https://github.com/kubernetes/kubectl/blob/a66725a1e1f21f6d34f0bd5ad187b0814d452ecc/pkg/cmd/cmd.go#L221
-func GetDefaultFactory() cmdutil.Factory {
+func DefaultFactory() cmdutil.Factory {
 	warningsAsErrors := false
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{}

@@ -9,7 +9,9 @@ type KubeOptions struct {
 type KubeOption func(*KubeOptions)
 
 func NewKubeOptions(opts []KubeOption) *KubeOptions {
-	o := &KubeOptions{}
+	o := &KubeOptions{
+		Namespace: "default",
+	}
 	for _, opt := range opts {
 		opt(o)
 	}

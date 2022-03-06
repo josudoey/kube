@@ -21,6 +21,10 @@ func (s *ServicePortEntry) SourceHostPort() string {
 	return s.Service.GetName() + ":" + strconv.Itoa(int(s.ServicePort.Port))
 }
 
+func (s *ServicePortEntry) TargetHostPort() string {
+	return s.Service.GetName() + ":" + strconv.Itoa(s.ServicePort.TargetPort.IntValue())
+}
+
 func (s *ServicePortEntry) SourceHostName() string {
 	return s.Service.GetName() + "-" + strconv.Itoa(int(s.ServicePort.Port))
 }

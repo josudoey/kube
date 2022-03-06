@@ -155,7 +155,7 @@ func (o *KubeVhostServerOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args
 
 func NewCommand() *cobra.Command {
 	o := NewKubeVhostServerOptions()
-	f := kube.GetDefaultFactory()
+	f := kube.DefaultFactory()
 
 	cmd := &cobra.Command{
 		Use: "server [--port=PORT]",
