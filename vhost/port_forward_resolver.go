@@ -1,7 +1,6 @@
 package vhost
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,11 +10,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/josudoey/kube"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
@@ -285,34 +282,6 @@ func (resolver *PortForwardResolver) ListServices() []ServicePortEntry {
 		items = append(items, *item)
 	}
 	return items
-}
-
-func (resolver *PortForwardResolver) PullServices(ctx context.Context, client coreclient.ServicesGetter, options ...kube.KubeOption) (*v1.ServiceList, error) {
-	serviceList, err := kube.GetServiceList(ctx, client,
-		options...,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, svc := range serviceList.Items {
-		resolver.AddService(svc)
-	}
-	return serviceList, nil
-}
-
-func (resolver *PortForwardResolver) PullPods(ctx context.Context, client coreclient.PodsGetter, options ...kube.KubeOption) (*v1.PodList, error) {
-	podList, err := kube.GetPodList(ctx, client,
-		options...,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, pod := range podList.Items {
-		resolver.AddPod(pod)
-	}
-	return podList, nil
 }
 
 type PortForwardResolver struct {

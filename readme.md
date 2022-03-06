@@ -12,5 +12,7 @@ $ kube-pod-watcher
 ```
 $ go install github.com/josudoey/kube/cmd/kube-vhost@latest
 $ kube-vhost -h
-$ kube-vhost --port 8010
+$ kube-vhost show
+$ kube-vhost server --port 8010
 ```
+

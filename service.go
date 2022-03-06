@@ -9,7 +9,7 @@ import (
 )
 
 func GetServiceList(ctx context.Context, client coreclient.ServicesGetter, opts ...KubeOption) (*corev1.ServiceList, error) {
-	o := GetKubeOptions(opts)
+	o := NewKubeOptions(opts)
 	options := metav1.ListOptions{LabelSelector: o.LabelSelector}
 
 	return client.Services(o.Namespace).List(ctx, options)

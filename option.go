@@ -8,7 +8,7 @@ type KubeOptions struct {
 
 type KubeOption func(*KubeOptions)
 
-func GetKubeOptions(opts []KubeOption) *KubeOptions {
+func NewKubeOptions(opts []KubeOption) *KubeOptions {
 	o := &KubeOptions{}
 	for _, opt := range opts {
 		opt(o)

@@ -10,7 +10,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func (resolver *PortForwardResolver) GetHTTPTransport(client rest.Interface, config *rest.Config, namespace string) *http.Transport {
+func (resolver *PortForwardResolver) NewRoundTripper(client rest.Interface, config *rest.Config, namespace string) http.RoundTripper {
 	return &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			host, _, err := net.SplitHostPort(addr)
