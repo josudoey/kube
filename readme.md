@@ -51,18 +51,16 @@ import (
 	"github.com/josudoey/kube"
 	"github.com/josudoey/kube/vhost/vhostutil"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 
 func main() {
-	vhostPortForward, err := vhostutil.GRPCPortForward(kube.DefaultFactory())
-	if err != nil {
-		return nil, err
-	}
+	vhostPortForward, _ := vhostutil.GRPCPortForward(kube.DefaultFactory())
 	addr := "<svc-name>:<port>"
 	conn, err := grpc.Dial(addr,
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		vhostPortForward,
 	)
 	// ...
