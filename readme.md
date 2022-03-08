@@ -25,6 +25,7 @@ package main
 import (
 	"net/http"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/josudoey/kube"
 	"github.com/josudoey/kube/vhost/vhostutil"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -58,7 +59,7 @@ import (
 
 func main() {
 	vhostPortForward, _ := vhostutil.GRPCPortForward(kube.DefaultFactory())
-	addr := "<svc-name>:<port>"
+	addr := "<service name>:<port>"
 	conn, err := grpc.Dial(addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		vhostPortForward,
