@@ -126,13 +126,18 @@ func (s *grpcServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 func (resolver *PortForwardResolver) GetGRPCHandler(base http.Handler, client rest.Interface, config *rest.Config, namespace string) http.Handler {
 	handleConnection := func(local net.Conn, preface *GRPCPreface) error {
-		host := ""
+		authority := ""
 		// see https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests
 		for _, f := range preface.Header {
 			if f.Name != ":authority" {
 				continue
 			}
-			host = f.Value
+			authority = f.Value
+		}
+
+		host, _, err := net.SplitHostPort(authority)
+		if err != nil {
+			host = authority
 		}
 
 		backend := resolver.ResolveBackend(host)
