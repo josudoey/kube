@@ -1,4 +1,4 @@
-package vhostutil
+package kubeutil
 
 import (
 	"github.com/josudoey/kube"

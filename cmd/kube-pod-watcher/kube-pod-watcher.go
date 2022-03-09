@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/josudoey/kube"
+	"github.com/josudoey/kube/kubeutil"
 	"github.com/spf13/cobra"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
@@ -65,7 +66,7 @@ func (o *PodWatcherOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []st
 
 func main() {
 	o := NewPodWatcherOptions()
-	f := kube.DefaultFactory()
+	f := kubeutil.DefaultFactory()
 
 	cmd := &cobra.Command{
 		Use: "kube-pod-watcher",

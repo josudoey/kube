@@ -10,8 +10,8 @@ import (
 	"net/url"
 
 	"github.com/josudoey/kube"
+	"github.com/josudoey/kube/kubeutil"
 	"github.com/josudoey/kube/vhost"
-	"github.com/josudoey/kube/vhost/vhostutil"
 	"github.com/spf13/cobra"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
@@ -71,7 +71,7 @@ func (o *KubeVhostServerOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args
 		}
 	}
 
-	_, err = vhostutil.PullServices(ctx, resolver, client,
+	_, err = kubeutil.PullServices(ctx, resolver, client,
 		kube.WithNamespace(namespace),
 		kube.WithLabelSelector(selector),
 	)
@@ -79,7 +79,7 @@ func (o *KubeVhostServerOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args
 		return err
 	}
 
-	podList, err := vhostutil.PullPods(ctx, resolver, client,
+	podList, err := kubeutil.PullPods(ctx, resolver, client,
 		kube.WithNamespace(namespace),
 		kube.WithLabelSelector(selector),
 	)
@@ -155,7 +155,7 @@ func (o *KubeVhostServerOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args
 
 func NewCommand() *cobra.Command {
 	o := NewKubeVhostServerOptions()
-	f := kube.DefaultFactory()
+	f := kubeutil.DefaultFactory()
 
 	cmd := &cobra.Command{
 		Use: "server [--port=PORT]",

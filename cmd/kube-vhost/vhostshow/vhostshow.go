@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/josudoey/kube"
+	"github.com/josudoey/kube/kubeutil"
 	"github.com/josudoey/kube/vhost"
-	"github.com/josudoey/kube/vhost/vhostutil"
 	"github.com/spf13/cobra"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
@@ -35,7 +35,7 @@ func (o *KubeVhostShowOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args [
 	ctx := context.Background()
 	resolver := vhost.NewPortForwardResolver()
 
-	err = vhostutil.Pull(ctx, resolver, client,
+	err = kubeutil.Pull(ctx, resolver, client,
 		kube.WithNamespace(namespace),
 		kube.WithLabelSelector(selector),
 	)
@@ -54,7 +54,7 @@ func (o *KubeVhostShowOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args [
 
 func NewCommand() *cobra.Command {
 	o := NewKubeVhostShowOptions()
-	f := kube.DefaultFactory()
+	f := kubeutil.DefaultFactory()
 
 	cmd := &cobra.Command{
 		Use: "show",
