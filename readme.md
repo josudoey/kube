@@ -32,9 +32,9 @@ import (
 
 
 func main() {
-	vhostPortForward, _ := kubeutil.HTTPPortForward(kubeutil.DefaultFactory())
+	kubePortForward, _ := kubeutil.HTTPPortForward(kubeutil.DefaultFactory())
 	client := resty.NewWithClient(&http.Client{
-		Transport: vhostPortForward,
+		Transport: kubePortForward,
 	})
 	// ...
 }
@@ -56,11 +56,11 @@ import (
 
 
 func main() {
-	vhostPortForward, _ := vhostutil.GRPCPortForward(kubeutil.DefaultFactory())
+	kubePortForward, _ := kubeutil.GRPCPortForward(kubeutil.DefaultFactory())
 	addr := "<service name>:<port>"
 	conn, err := grpc.Dial(addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		vhostPortForward,
+		kubePortForward,
 	)
 	// ...
 }
