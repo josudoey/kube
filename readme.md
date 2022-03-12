@@ -17,7 +17,7 @@ $ kube-vhost server --port 8010
 ```
 
 
-### http client portforwad example
+### http client portforward example
 
 ```golang
 package main
@@ -42,7 +42,7 @@ func main() {
 
 
 
-### grpc client portforwad example
+### grpc client portforward example
 
 ```golang
 package main
