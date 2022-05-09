@@ -2,7 +2,7 @@ package vhostshow
 
 import (
 	"context"
-	"log"
+	"fmt"
 
 	"github.com/josudoey/kube"
 	"github.com/josudoey/kube/kubeutil"
@@ -46,7 +46,7 @@ func (o *KubeVhostShowOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args [
 
 	for _, svc := range resolver.ListServices() {
 		name := svc.SourceHostName()
-		log.Printf("vhost port-forward %s -> svc/%s", name, svc.SourceHostPort())
+		fmt.Printf("%s -> svc/%s\n", name, svc.SourceHostPort())
 	}
 
 	return nil
