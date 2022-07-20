@@ -1,7 +1,7 @@
 ## kube-pod-watcher usage
 
 ```
-$ go install github.com/josudoey/kube/cmd/kube-pod-watcher@v0.0.5
+$ go install github.com/josudoey/kube/cmd/kube-pod-watcher@v0.0.6
 $ kube-pod-watcher -h
 $ kube-pod-watcher
 ```
@@ -10,10 +10,19 @@ $ kube-pod-watcher
 ## kube-vhost usage
 
 ```
-$ go install github.com/josudoey/kube/cmd/kube-vhost@v0.0.5
+$ go install github.com/josudoey/kube/cmd/kube-vhost@v0.0.6
 $ kube-vhost -h
 $ kube-vhost show
 $ kube-vhost server --port 8010
+```
+
+
+## kube-info usage
+
+```
+$ go install github.com/josudoey/kube/cmd/kube-info@v0.0.6
+$ kube-info -h
+$ kube-info pod-image
 ```
 
 
